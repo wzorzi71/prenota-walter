@@ -350,13 +350,27 @@ function getSlots(cb){var key=S.z+"|"+S.v;if(cache[key])return cb(cache[key]);
   if(DEMO){setTimeout(function(){cache[key]=demoSlots(S.z,S.v);cb(cache[key]);},500);return;}
   fetch(API_URL+"?action=slots&z="+S.z+"&v="+S.v).then(function(r){return r.json();}).then(function(j){if(!j.ok)throw 0;cache[key]=j.days;cb(j.days);})
   .catch(function(){cb(null);});}
-function sendBooking(cb){var body={z:S.z,v:S.v,date:S.date,fascia:S.fascia,at:S.at,farmacia:S.farm,comune:S.comune,note:S.note,canale:S.usedVoice?"voce":"testo",hp:$("wz-hp").value,rid:S.rid};
+function sendBooking(cb){var B={z:S.z,v:S.v,date:S.date,fascia:S.fascia};var body={z:S.z,v:S.v,date:S.date,fascia:S.fascia,at:S.at,farmacia:S.farm,comune:S.comune,note:S.note,canale:S.usedVoice?"voce":"testo",hp:$("wz-hp").value,rid:S.rid};
   if(DEMO){setTimeout(function(){cb({ok:true});},700);return;}
   // stesso codice richiesta (rid) a ogni tentativo: lo script non crea mai doppioni
+  // Se la risposta non arriva bene, NON reinvio alla cieca: prima controllo l'agenda.
+  // Se la fascia scelta non è più libera, vuol dire che la prenotazione è già entrata: è un successo.
+  function check(after){fetch(API_URL+"?action=slots&z="+B.z+"&v="+B.v).then(function(r){return r.json();})
+    .then(function(j){if(!j.ok)throw 0;var d=j.days.filter(function(x){return x.d===B.date;})[0];after(!d||d.f.indexOf(B.fascia)<0);})
+    .catch(function(){after(null);});}
+  var tried=false;
   function go(n){fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})
     .then(function(r){return r.text();}).then(function(t){var j;try{j=JSON.parse(t);}catch(_){j={ok:false,error:"risposta"};}return j;})
     .catch(function(){return {ok:false,error:"rete"};})
-    .then(function(j){if(j.ok||/^(email|preso|zona|fascia|ora|dati|data)$/.test(j.error)||n>=3)cb(j);else setTimeout(function(){go(n+1);},1200*n);});}
+    .then(function(j){
+      if(j.ok){cb(j);return;}
+      if(j.error==="preso"&&tried){cb({ok:true});return;}         // l'ha già registrata il primo invio
+      if(/^(preso|zona|fascia|ora|dati|data)$/.test(j.error)){cb(j);return;}
+      tried=true;
+      setTimeout(function(){check(function(gone){
+        if(gone===true){cb({ok:true});return;}                    // entrata davvero
+        if(n>=3){cb(j);return;}
+        go(n+1);});},1500);});}
   go(1);}
 function wait(on){S.wait=on;if(on){S.wEl=add("b w","<i></i><i></i><i></i>");}else if(S.wEl){S.wEl.remove();S.wEl=null;}}
 
@@ -460,10 +474,16 @@ function handle(text){var p=P(text);
   case "end":
     S.di=null;start();return;
   }}
-function submit(){if(!S.rid)S.rid=Date.now().toString(36)+Math.random().toString(36).slice(2,10);wait(true);sendBooking(function(r){wait(false);
-  if(r&&r.ok){S.step="end";bot("Fatto! Ho inviato la richiesta per **"+fmtDay(S.date)+" alle "+hT(S.at)+"**. Walter la riceve subito e la contatterà lui per la conferma. Grazie e buona giornata!",[{l:"Nuova prenotazione",v:"ricomincia"}],true);return;}
-  if(r&&r.error==="preso"){delete cache[S.z+"|"+S.v];S.di=0;goDays("Mi dispiace, nel frattempo quell'orario è stato occupato. ");return;}
-  S.step="confirm";bot("Non sono riuscito a inviare la richiesta (codice: "+((r&&r.error)||"?")+"). Riprovo? Se il problema continua, chiami Walter al "+PHONE+".",[{l:"Riprova",v:"sì"},"Annulla"]);});}
+// Risposta immediata al cliente: la richiesta viaggia in sottofondo (con controlli e nuovi tentativi).
+// Solo se proprio non entra, compare un avviso in più.
+function submit(){if(!S.rid)S.rid=Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+  var quando=fmtDay(S.date)+" alle "+hT(S.at);delete cache[S.z+"|"+S.v];
+  S.step="end";
+  bot("Grazie per la prenotazione! Richiesta confermata per **"+quando+"**. Walter la contatterà per la conferma definitiva. Buona giornata!",[{l:"Nuova prenotazione",v:"ricomincia"}],true);
+  sendBooking(function(r){
+    if(r&&r.ok)return;
+    if(r&&r.error==="preso"){bot("Attenzione: l'orario di "+quando+" nel frattempo è stato preso da un altro cliente, quindi la sua richiesta non è stata registrata. Vuole sceglierne un altro?",[{l:"Scegli un altro orario",v:"ricomincia"}],true);return;}
+    bot("Attenzione: non sono riuscito a registrare la richiesta per "+quando+" (codice: "+((r&&r.error)||"?")+"). La prego di riprovare tra poco oppure di chiamare Walter al "+PHONE+".",[{l:"Riprova",v:"ricomincia"}],true);});}
 
 W.WZVA={handle:function(t){user(t);},state:function(){return S;}};
 setVoice(!!TTS);
