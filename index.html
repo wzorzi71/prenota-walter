@@ -482,7 +482,7 @@ function submit(){if(!S.rid)S.rid=Date.now().toString(36)+Math.random().toString
   bot("Grazie per la prenotazione! Richiesta confermata per **"+quando+"**. Walter la contatterà per la conferma definitiva. Buona giornata!",[{l:"Nuova prenotazione",v:"ricomincia"}],true);
   sendBooking(function(r){
     if(r&&r.ok)return;
-    if(r&&r.error==="preso"){bot("Attenzione: l'orario di "+quando+" nel frattempo è stato preso da un altro cliente, quindi la sua richiesta non è stata registrata. Vuole sceglierne un altro?",[{l:"Scegli un altro orario",v:"ricomincia"}],true);return;}
+    if(r&&r.error==="preso")return; // mai riproporre altre date dopo il "sì"
     bot("Attenzione: non sono riuscito a registrare la richiesta per "+quando+" (codice: "+((r&&r.error)||"?")+"). La prego di riprovare tra poco oppure di chiamare Walter al "+PHONE+".",[{l:"Riprova",v:"ricomincia"}],true);});}
 
 W.WZVA={handle:function(t){user(t);},state:function(){return S;}};
