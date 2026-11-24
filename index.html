@@ -391,7 +391,7 @@ function goDays(prefix){wait(true);getSlots(function(days){wait(false);
 function proposeDay(prefix){S.step="day";var d=S.days[S.di];
   var ch=[{l:"Sì, va bene"}];S.days.slice(S.di+1,S.di+5).forEach(function(x){ch.push({l:shortDay(x.d),v:fmtDay(x.d)});});ch.push({l:"Altro giorno"});
   bot(prefix+(S.di===0?"Il primo giorno libero per "+vName()+" è ":"Il giorno libero successivo è ")+"**"+fmtDay(d.d)+"**, "+fasceTxt(d.f)+". Le va bene, o preferisce un altro giorno?",ch);}
-function fasceTxt(f){var a=f.map(span);return (f.length>1?"con due fasce libere: ":"con una fascia libera: ")+(a.length>1?a.slice(0,-1).join(", ")+" oppure "+a[a.length-1]:a[0]);}
+function fasceTxt(f){var a=f.map(span);return (f.length>1?"con "+(["","","due","tre","quattro"][f.length]||f.length)+" fasce libere: ":"con una fascia libera: ")+(a.length>1?a.slice(0,-1).join(", ")+" oppure "+a[a.length-1]:a[0]);}
 function pickDay(i,p){S.di=i;S.date=S.days[i].d;S.dayF=S.days[i].f;S.fascia=null;S.at=null;if(!tryFascia(p))askFascia();}
 function askFascia(){S.step="fascia";var f=S.dayF;
   if(f.length===1)bot("**"+cap(fmtDay(S.date))+"**: la fascia libera è "+span(f[0])+". Va bene?",["Sì",{l:"Altro giorno"}]);
