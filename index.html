@@ -350,7 +350,7 @@ function getSlots(cb){var key=S.z+"|"+S.v;if(cache[key])return cb(cache[key]);
   if(DEMO){setTimeout(function(){cache[key]=demoSlots(S.z,S.v);cb(cache[key]);},500);return;}
   fetch(API_URL+"?action=slots&z="+S.z+"&v="+S.v).then(function(r){return r.json();}).then(function(j){if(!j.ok)throw 0;cache[key]=j.days;cb(j.days);})
   .catch(function(){cb(null);});}
-function sendBooking(cb){var body={z:S.z,v:S.v,date:S.date,fascia:S.fascia,at:S.at,farmacia:S.farm,comune:S.comune,email:S.email,note:S.note,canale:S.usedVoice?"voce":"testo",hp:$("wz-hp").value,rid:S.rid};
+function sendBooking(cb){var body={z:S.z,v:S.v,date:S.date,fascia:S.fascia,at:S.at,farmacia:S.farm,comune:S.comune,note:S.note,canale:S.usedVoice?"voce":"testo",hp:$("wz-hp").value,rid:S.rid};
   if(DEMO){setTimeout(function(){cb({ok:true});},700);return;}
   // stesso codice richiesta (rid) a ogni tentativo: lo script non crea mai doppioni
   function go(n){fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})
@@ -394,16 +394,10 @@ function tryFascia(p){var f=S.dayF,ts=times(p,S.step==="fascia"||S.step==="at");
 function askAt(){S.step="at";var s=toM(S.fascia),ch=[];for(var m=s;m<s+DUR;m+=STEP)ch.push(hT(toT(m)));
   bot("Bene, fascia "+span(S.fascia)+". A che ora preferisce iniziare? Può scegliere tra le "+hT(S.fascia)+" e le "+hT(toT(s+DUR-STEP))+", ogni quarto d'ora.",ch);}
 function askFarm(){S.step="farm";bot("Perfetto: **"+fmtDay(S.date)+" alle "+hT(S.at)+"**. Come si chiama la farmacia o parafarmacia?");}
-function askEmail(){S.step="email";bot("A quale indirizzo email le mando la conferma dell'appuntamento? Può dirlo, per esempio «mario punto rossi chiocciola gmail punto com», oppure scriverlo qui sotto.");try{$in.focus();}catch(_){}}
-function parseEmail(t){var x=" "+String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")+" ";
-  x=x.replace(/^\s*(la mia |il mio |l )?(e ?mail|mail|indirizzo)( email)?( e)?\s*:?\s/," ");
-  x=x.replace(/\s(chiocciola|chiocciolina|at)\s/g,"@").replace(/\s(punto|dot)\s/g,".").replace(/\s(trattino basso|underscore)\s/g,"_").replace(/\s(trattino|meno)\s/g,"-");
-  x=x.replace(/\s+/g,"").replace(/[.,;]+$/,"");
-  return /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(x)?x:null;}
 function askNote(){S.step="note";bot("Vuole lasciare una nota per Walter, per esempio l'argomento dell'incontro? Se no, dica «nessuna».",["Nessuna nota"]);}
 function askConfirm(){S.step="confirm";
-  bot("Riepilogo: **"+S.farm+"**, "+S.comune+" ("+vName()+"). **"+fmtDay(S.date)+" alle "+hT(S.at)+"**."+(S.note?" Nota: "+S.note+".":"")+" Conferma all'email: "+S.email+". Invio la richiesta?",
-    [{l:"Sì, invia",big:true,v:"sì confermo"},"Cambia giorno o orario","Cambia farmacia","Cambia email","Annulla"]);}
+  bot("Riepilogo: **"+S.farm+"**, "+S.comune+" ("+vName()+"). **"+fmtDay(S.date)+" alle "+hT(S.at)+"**."+(S.note?" Nota: "+S.note+".":"")+" Invio la richiesta?",
+    [{l:"Sì, invia",big:true,v:"sì confermo"},"Cambia giorno o orario","Cambia farmacia","Annulla"]);}
 function cap(s){s=s.trim();return s.charAt(0).toUpperCase()+s.slice(1);}
 function cleanFarm(t){var r=cleanFarm0(t),m=norm(t).match(/\b(parafarmacia|farmacia)\b/);if(m&&!/farmacia/i.test(r))r=cap(m[1])+" "+r;return r;}
 function cleanFarm0(t){return cap(t.replace(/^\s*(la |il )?(farmacia |parafarmacia )?(nome (della farmacia )?(è|e) |si chiama |chiama |mi chiamo |sono (la |della |dalla )?|siamo (la )?|è (la )?)/i,"").replace(/[.!]+$/,""));}
@@ -452,18 +446,13 @@ function handle(text){var p=P(text);
     bot("L'ora di inizio deve essere tra le "+hT(S.fascia)+" e le "+hT(toT(s+DUR-STEP))+". A che ora preferisce?",(function(){var c=[];for(var m=s;m<s+DUR;m+=STEP)c.push(hT(toT(m)));return c;})());return;
   case "farm":
     var n=cleanFarm(text);if(n.length<2){bot("Non ho capito il nome. Come si chiama la farmacia?");return;}
-    S.farm=n;if(S.email)askConfirm();else askEmail();return;
-  case "email":
-    var em=parseEmail(text);
-    if(!em){bot("Non ho capito bene l'indirizzo. Lo può scrivere nel campo qui sotto? Per esempio: nome@gmail.com");try{$in.focus();}catch(_){}return;}
-    S.email=em;if(S.fix){S.fix=false;askConfirm();}else askNote();return;
+    S.farm=n;if(S.fix){S.fix=false;askConfirm();}else askNote();return;
   case "note":
     S.note=/^ (no|nessun\w*|niente|non serve|non ho|nulla)\b/.test(p)?"":text.trim().slice(0,500);askConfirm();return;
   case "confirm":
     if(/\bannull/.test(p)){S.step="end";bot("Va bene, non ho registrato niente. A presto!",["Ricomincia"],true);return;}
     if(/\b(giorn\w*|data|orari\w*|ora)\b/.test(p)){proposeDay("Va bene, cambiamo. ");return;}
-    if(/\b(e ?mail|mail|indirizzo|posta)\b/.test(p)){S.fix=true;askEmail();return;}
-    if(/\b(farmaci\w*|nome)\b/.test(p)){askFarm();return;}
+    if(/\b(farmaci\w*|nome)\b/.test(p)){S.fix=true;askFarm();return;}
     if(/\b(comune|zona|provinci\w*)\b/.test(p)){S.di=null;start();return;}
     if(/\bnot[ae]\b/.test(p)){askNote();return;}
     if(isYes(p)){submit();return;}
@@ -472,8 +461,7 @@ function handle(text){var p=P(text);
     S.di=null;start();return;
   }}
 function submit(){if(!S.rid)S.rid=Date.now().toString(36)+Math.random().toString(36).slice(2,10);wait(true);sendBooking(function(r){wait(false);
-  if(r&&r.ok){S.step="end";bot("Fatto! Ho inviato la richiesta per **"+fmtDay(S.date)+" alle "+hT(S.at)+"**. Walter la riceve subito: appena la conferma, le arriva l'email di conferma a "+S.email+". Grazie e buona giornata!",[{l:"Nuova prenotazione",v:"ricomincia"}],true);return;}
-  if(r&&r.error==="email"){S.fix=true;S.step="email";bot("L'indirizzo email non sembra corretto. Me lo può scrivere qui sotto?");return;}
+  if(r&&r.ok){S.step="end";bot("Fatto! Ho inviato la richiesta per **"+fmtDay(S.date)+" alle "+hT(S.at)+"**. Walter la riceve subito e la contatterà lui per la conferma. Grazie e buona giornata!",[{l:"Nuova prenotazione",v:"ricomincia"}],true);return;}
   if(r&&r.error==="preso"){delete cache[S.z+"|"+S.v];S.di=0;goDays("Mi dispiace, nel frattempo quell'orario è stato occupato. ");return;}
   S.step="confirm";bot("Non sono riuscito a inviare la richiesta (codice: "+((r&&r.error)||"?")+"). Riprovo? Se il problema continua, chiami Walter al "+PHONE+".",[{l:"Riprova",v:"sì"},"Annulla"]);});}
 
@@ -508,8 +496,8 @@ var DM=null;function demo(o){if(o.pin!=="1234")return{ok:false,error:"pin"};if(o
       return (i*3+j)%7===0?{f:f,stato:"occupato"}:{f:f,stato:z.length?"libero":"fuorizona",zone:z};})});}
     var a=DM.days[1].fasce[2];a.stato="attesa";a.id="d1";a.farm="Farmacia San Paolo";a.com="Brunico";DM.days[1].solo="Val Pusteria e Val Badia";
     var b=DM.days[3].fasce[0];b.stato="prenotato";b.id="d2";b.farm="Farmacia Centrale";b.com="Merano";
-    DM.lista=[{id:"d1",d:DM.days[1].d,ora:"14:45",stato:"attesa",farm:"Farmacia San Paolo",com:"Brunico",em:"cliente@esempio.it",zona:"Val Pusteria e Val Badia"},
-      {id:"d2",d:DM.days[3].d,ora:"08:30",stato:"confermata",farm:"Farmacia Centrale",com:"Merano",em:"cliente2@esempio.it",zona:"Merano e Val Passiria"}];}
+    DM.lista=[{id:"d1",d:DM.days[1].d,ora:"14:45",stato:"attesa",farm:"Farmacia San Paolo",com:"Brunico",zona:"Val Pusteria e Val Badia"},
+      {id:"d2",d:DM.days[3].d,ora:"08:30",stato:"confermata",farm:"Farmacia Centrale",com:"Merano",zona:"Merano e Val Passiria"}];}
   if(o.op==="agenda")return{ok:true,days:DM.days,lista:DM.lista};
   if(o.op==="conferma"){DM.lista.forEach(function(x){if(x.id===o.id)x.stato="confermata";});DM.days.forEach(function(d){d.fasce.forEach(function(f){if(f.id===o.id)f.stato="prenotato";});});return{ok:true,msg:"Confermata! (prova)"};}
   if(o.op==="rifiuta"||o.op==="annulla"){DM.lista=DM.lista.filter(function(x){return x.id!==o.id;});DM.days.forEach(function(d){d.fasce.forEach(function(f){if(f.id===o.id){f.stato="libero";f.zone=["BZ"];delete f.id;}});});return{ok:true,msg:"Fatto (prova)"};}
@@ -534,9 +522,9 @@ function render(){var r=A.data,att=r.lista.filter(function(x){return x.stato==="
   el.querySelectorAll("[data-op]").forEach(function(b){b.onclick=function(){act(b);};});}
 function rich(r){var att=r.lista.filter(function(x){return x.stato==="attesa";}),ok=r.lista.filter(function(x){return x.stato!=="attesa";});
   function card(x){var o=A.open[x.id];return '<div class="card"><div class="t">'+esc(x.farm)+' <span class="pill '+(x.stato==="attesa"?'p-attesa">da confermare':'p-ok">confermato')+'</span></div>'+
-    '<div class="m">📅 '+fd(x.d)+' alle '+hT(x.ora)+' · '+esc(x.com)+(x.zona?' ('+esc(x.zona)+')':'')+'</div><div class="m">✉️ <a href="mailto:'+esc(x.em)+'">'+esc(x.em)+'</a></div>'+
-    (o?'<textarea id="mo-'+x.id+'" rows="2" placeholder="Motivo (facoltativo, va nell\'email al cliente)"></textarea><div class="row"><button class="btn no" data-op="'+(x.stato==="attesa"?"rifiuta":"annulla")+'" data-id="'+x.id+'">'+(x.stato==="attesa"?"Rifiuta e avvisa":"Annulla e avvisa")+'</button><button class="btn gh" data-op="chiudi" data-id="'+x.id+'">Indietro</button></div>'
-     :'<div class="row">'+(x.stato==="attesa"?'<button class="btn" data-op="conferma" data-id="'+x.id+'">✓ Conferma</button><button class="btn gh" data-op="apri" data-id="'+x.id+'">Rifiuta…</button>':'<button class="btn gh" data-op="apri" data-id="'+x.id+'">Annulla appuntamento…</button>')+'</div>')+'</div>';}
+    '<div class="m">📅 '+fd(x.d)+' alle '+hT(x.ora)+' · '+esc(x.com)+(x.zona?' ('+esc(x.zona)+')':'')+'</div>'+
+    (o?'<p class="m" style="margin-top:10px">La fascia torna libera e l\'evento sparisce dal calendario. La farmacia la avvisi tu.</p><div class="row"><button class="btn no" data-op="'+(x.stato==="attesa"?"rifiuta":"annulla")+'" data-id="'+x.id+'">'+(x.stato==="attesa"?"Sì, rifiuta":"Sì, annulla")+'</button><button class="btn gh" data-op="chiudi" data-id="'+x.id+'">Indietro</button></div>'
+     :'<div class="row">'+(x.stato==="attesa"?'<button class="btn" data-op="conferma" data-id="'+x.id+'">✓ Segna confermato</button><button class="btn gh" data-op="apri" data-id="'+x.id+'">Rifiuta…</button>':'<button class="btn gh" data-op="apri" data-id="'+x.id+'">Annulla appuntamento…</button>')+'</div>')+'</div>';}
   return '<h2>Da confermare</h2>'+(att.length?att.map(card).join(""):'<p class="empty">Nessuna richiesta in attesa.</p>')+
     '<h2>Prossimi appuntamenti</h2>'+(ok.length?ok.map(card).join(""):'<p class="empty">Nessun appuntamento confermato.</p>');}
 function sett(r){var wk=r.days.slice(A.week*5,A.week*5+5),nw=Math.ceil(r.days.length/5);
@@ -556,7 +544,6 @@ function act(b){var op=b.dataset.op,id=b.dataset.id;
   if(op==="wp"){A.week--;render();return;}if(op==="wn"){A.week++;render();return;}
   if(op==="apri"){A.open[id]=1;render();return;}if(op==="chiudi"){delete A.open[id];render();return;}
   var o={op:op,id:id};if(op==="oscura"){o.date=b.dataset.d;o.fascia=b.dataset.f;}
-  if(op==="rifiuta"||op==="annulla"){var t=document.getElementById("mo-"+id);o.motivo=t?t.value:"";}
   b.disabled=true;b.textContent="…";
   call(o,function(r){if(!r.ok){toast(ERR[r.error]||"Errore");render();return;}delete A.open[id];toast(r.msg||(op==="oscura"?"Fascia oscurata":op==="riapri"?"Fascia riaperta":"Fatto"));load();});}
 // schede in basso
