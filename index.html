@@ -479,7 +479,7 @@ function handle(text){var p=P(text);
 function submit(){if(!S.rid)S.rid=Date.now().toString(36)+Math.random().toString(36).slice(2,10);
   var quando=fmtDay(S.date)+" alle "+hT(S.at);delete cache[S.z+"|"+S.v];
   S.step="end";
-  bot("Grazie per la prenotazione! Richiesta confermata per **"+quando+"**. Walter la contatterà per la conferma definitiva. Buona giornata!",[{l:"Nuova prenotazione",v:"ricomincia"}],true);
+  bot("Grazie per la prenotazione! L'appuntamento è confermato per **"+quando+"**. Se ci fossero modifiche, la contatterà Walter. Buona giornata!",[{l:"Nuova prenotazione",v:"ricomincia"}],true);
   sendBooking(function(r){
     if(r&&r.ok)return;
     if(r&&r.error==="preso")return; // mai riproporre altre date dopo il "sì"
