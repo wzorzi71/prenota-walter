@@ -350,7 +350,10 @@ function getSlots(cb){var key=S.z+"|"+S.v;if(cache[key])return cb(cache[key]);
   if(DEMO){setTimeout(function(){cache[key]=demoSlots(S.z,S.v);cb(cache[key]);},500);return;}
   fetch(API_URL+"?action=slots&z="+S.z+"&v="+S.v).then(function(r){return r.json();}).then(function(j){if(!j.ok)throw 0;cache[key]=j.days;cb(j.days);})
   .catch(function(){cb(null);});}
-function sendBooking(cb){var B={z:S.z,v:S.v,date:S.date,fascia:S.fascia};var body={z:S.z,v:S.v,date:S.date,fascia:S.fascia,at:S.at,farmacia:S.farm,comune:S.comune,note:S.note,canale:S.usedVoice?"voce":"testo",hp:$("wz-hp").value,rid:S.rid};
+function pend(op,b){try{var k="wz-pend",a=JSON.parse(W.localStorage.getItem(k)||"[]");a=a.filter(function(x){return x.rid!==(b&&b.rid)&&Date.now()-x.t<864e5;});if(op==="add")a.push({rid:b.rid,t:Date.now(),b:b});W.localStorage.setItem(k,JSON.stringify(a));return a;}catch(_){return [];}}
+function sendBooking(cb,pre){var body=pre||{z:S.z,v:S.v,date:S.date,fascia:S.fascia,at:S.at,farmacia:S.farm,comune:S.comune,note:S.note,canale:S.usedVoice?"voce":"testo",hp:$("wz-hp").value,rid:S.rid};var B={z:body.z,v:body.v,date:body.date,fascia:body.fascia};
+  var cb0=cb;cb=function(j){if(j&&(j.ok||/^(preso|zona|fascia|ora|dati|data)$/.test(j.error)))pend("del",body);cb0(j);};
+  if(!DEMO)pend("add",body);
   if(DEMO){setTimeout(function(){cb({ok:true});},700);return;}
   // stesso codice richiesta (rid) a ogni tentativo: lo script non crea mai doppioni
   // Se la risposta non arriva bene, NON reinvio alla cieca: prima controllo l'agenda.
@@ -359,7 +362,7 @@ function sendBooking(cb){var B={z:S.z,v:S.v,date:S.date,fascia:S.fascia};var bod
     .then(function(j){if(!j.ok)throw 0;var d=j.days.filter(function(x){return x.d===B.date;})[0];after(!d||d.f.indexOf(B.fascia)<0);})
     .catch(function(){after(null);});}
   var tried=false;
-  function go(n){fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})
+  function go(n){fetch(API_URL,{method:"POST",keepalive:true,headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})
     .then(function(r){return r.text();}).then(function(t){var j;try{j=JSON.parse(t);}catch(_){j={ok:false,error:"risposta"};}return j;})
     .catch(function(){return {ok:false,error:"rete"};})
     .then(function(j){
@@ -487,6 +490,8 @@ function submit(){if(!S.rid)S.rid=Date.now().toString(36)+Math.random().toString
 
 W.WZVA={handle:function(t){user(t);},state:function(){return S;}};
 setVoice(!!TTS);
+// richieste rimaste a metà (pagina chiusa subito dopo il "sì"): le rimando in silenzio
+if(!DEMO)setTimeout(function(){pend("list").forEach(function(x){sendBooking(function(){},x.b);});},2000);
 })();
 </script>
 
