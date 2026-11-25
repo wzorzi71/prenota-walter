@@ -239,14 +239,14 @@ var CSS='#wzva{--a:#0E5A6B;--a2:#E8772E;--bg:#F3F6F7;--s:#fff;--ink:#13262E;--mu
 var st=D.createElement("style");st.textContent=CSS;D.head.appendChild(st);
 var ROOT=D.createElement("div");ROOT.id="wzva";ROOT.setAttribute("translate","no");ROOT.className="notranslate";
 ROOT.innerHTML='<button type="button" class="fab" id="wz-fab" aria-label="Prenota un appuntamento parlando con l\'assistente"><span class="ic">'+MIC+'</span><span class="tx">Parla con me</span></button>'+
- '<div class="tz" id="wz-tz" role="button" tabindex="0" aria-label="Apri l\'assistente"><div class="av">'+FACE+'</div><div><b>Ciao! Sono l\'assistente di Walter Zorzi</b><span>Parla con me: ti trovo un appuntamento libero in agenda.</span></div><button type="button" class="zx" id="wz-zx" aria-label="Chiudi messaggio">×</button></div>'+
+ '<div class="tz" id="wz-tz" role="button" tabindex="0" aria-label="Apri l\'assistente"><div class="av">'+FACE+'</div><div><b>Ciao! Sono Sonia, l\'assistente di Walter Zorzi</b><span>Parla con me: ti trovo un appuntamento libero in agenda.</span></div><button type="button" class="zx" id="wz-zx" aria-label="Chiudi messaggio">×</button></div>'+
  '<div class="pn" id="wz-pn" role="dialog" aria-label="Assistente prenotazioni" hidden>'+
- '<div class="h"><div class="av">'+FACE+'</div><div class="t"><b>Assistente di Walter</b><small>Prenoti un appuntamento parlando</small></div>'+
+ '<div class="h"><div class="av">'+FACE+'</div><div class="t"><b>Sonia</b><small>L\'assistente di Walter</small></div>'+
  '<button type="button" class="ib" id="wz-vo" aria-pressed="true" aria-label="Voce dell\'assistente: attiva"></button>'+
  '<button type="button" class="ib" id="wz-x" aria-label="Chiudi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>'+
  '<div class="demo" id="wz-demo" hidden>Modalità prova: orari finti, nessuna prenotazione viene salvata.</div>'+
  '<div class="wl" id="wz-wl"><div class="orb"><i></i><i></i><i></i><div class="av">'+FACE+'</div></div>'+
- '<h3>Parla con me, sono l\'assistente di Walter Zorzi</h3><p>Prenoti un incontro nella sua farmacia senza telefonate: guardo io l\'agenda di Walter e le propongo gli orari liberi.</p>'+
+ '<h3>Ciao, sono Sonia, l\'assistente di Walter Zorzi</h3><p>Prenoti un incontro nella sua farmacia senza telefonate: guardo io l\'agenda di Walter e le propongo gli orari liberi.</p>'+
  '<ol><li><em>1</em>Mi dice il comune della farmacia</li><li><em>2</em>Le propongo giorno e ora liberi</li><li><em>3</em>Conferma e l\'appuntamento è fissato</li></ol>'+
  '<button type="button" class="go" id="wz-go">'+MIC+'Parla con me</button><button type="button" class="wr" id="wz-wr">Preferisco scrivere</button></div>'+
  '<div class="log" id="wz-log" aria-live="polite" hidden></div><div class="ch" id="wz-ch"></div>'+
@@ -260,7 +260,9 @@ var SPK_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 var SR=W.SpeechRecognition||W.webkitSpeechRecognition, TTS=W.speechSynthesis, UTT=W.SpeechSynthesisUtterance||window.SpeechSynthesisUtterance;
 var rec=null, listening=false, micBlocked=false, voice=null, speakTok=0;
 function pickVoice(){if(!TTS)return;var vs=TTS.getVoices().filter(function(v){return /^it/i.test(v.lang);});
-  voice=vs.filter(function(v){return /google|alice|federica|elsa|natural|premium|enhanced|isabella/i.test(v.name);})[0]||vs[0]||null;}
+  // voce femminile (Sonia): prima le voci italiane femminili note, mai quelle maschili se c'è alternativa
+  var fem=/alice|federica|elsa|isabella|paola|emma|bianca|giulia|google|female|donna/i,mas=/luca|diego|cosimo|giorgio|male|uomo/i;
+  voice=vs.filter(function(v){return fem.test(v.name)&&!mas.test(v.name);})[0]||vs.filter(function(v){return !mas.test(v.name);})[0]||vs[0]||null;}
 if(TTS){pickVoice();TTS.onvoiceschanged=pickVoice;}
 function spoken(t){return t.replace(/\*\*/g,"").replace(/\b0?(\d{1,2}):(\d{2})\b/g,function(_,h,m){return m==="00"?h:m==="30"?h+" e mezza":m==="15"?h+" e un quarto":h+" e "+m;})
   .replace(/[«»]/g,"").replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu,"");}
@@ -333,7 +335,7 @@ W.WZVA_OPEN=openPanel;
   '#wzva-card button{display:inline-flex;align-items:center;gap:10px;border:0;background:#E8772E;color:#fff;font-weight:700;font-size:17px;border-radius:999px;padding:12px 24px 12px 14px;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.25)}'+
   '#wzva-card button svg{width:24px;height:24px}@media (prefers-reduced-motion:reduce){#wzva-card .o i{animation:none}}';
   document.head.appendChild(cs);
-  A.innerHTML='<div id="wzva-card"><div class="o"><i></i><i></i><i></i><div class="a">'+FACE+'</div></div><div class="t"><small>Assistente vocale</small><h3>Parla con me, sono l\'assistente di Walter Zorzi</h3>'+
+  A.innerHTML='<div id="wzva-card"><div class="o"><i></i><i></i><i></i><div class="a">'+FACE+'</div></div><div class="t"><small>Assistente vocale</small><h3>Ciao, sono Sonia, l\'assistente di Walter Zorzi</h3>'+
    '<p>Mi dica il comune della sua farmacia: guardo l\'agenda di Walter e le propongo subito un giorno e un orario liberi. Può parlare o scrivere.</p>'+
    '<button type="button">'+MIC+'Parla con me</button></div></div>';
   A.querySelector("button").onclick=function(){openPanel();};})();
@@ -381,7 +383,7 @@ function wait(on){S.wait=on;if(on){S.wEl=add("b w","<i></i><i></i><i></i>");}els
 var S={step:"start",voice:true};
 function vName(){var v=VALLI[S.z].filter(function(x){return x.id===S.v;})[0];return v?v.n:"";}
 function start(first){var v=S.voice,u=S.usedVoice;S={step:"comune",voice:v,usedVoice:u,started:true};chips([]);
-  bot((first?"Buongiorno! Sono l'assistente di Walter Zorzi. ":"")+"In quale comune si trova la farmacia?",[{l:"Provincia di Brescia",v:"provincia di Brescia"},{l:"Provincia di Bolzano",v:"provincia di Bolzano"},{l:"Provincia di Trento",v:"provincia di Trento"}]);}
+  bot((first?"Ciao, sono Sonia, l'assistente di Walter. ":"")+"In quale comune si trova la farmacia?",[{l:"Provincia di Brescia",v:"provincia di Brescia"},{l:"Provincia di Bolzano",v:"provincia di Bolzano"},{l:"Provincia di Trento",v:"provincia di Trento"}]);}
 function askValle(){S.step="valle";var L=VALLI[S.z];
   bot("Provincia di "+PROV[S.z]+". In quale zona? "+L.map(function(v){return v.n;}).join(", ")+".",L.map(function(v){return v.n;}));}
 function askComune2(){S.step="comune2";var c=VALLI[S.z].filter(function(x){return x.id===S.v;})[0].c;
